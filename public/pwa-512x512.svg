@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#005696" />
+      <stop offset="100%" stop-color="#002f52" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#grad)"/>
+  <rect x="64" y="64" width="384" height="384" rx="72" fill="#ffffff" fill-opacity="0.08"/>
+  <!-- Clipboard Body -->
+  <path d="M160 140C160 122.327 174.327 108 192 108H320C337.673 108 352 122.327 352 140V380C352 397.673 337.673 412 320 412H192C174.327 412 160 397.673 160 380V140Z" fill="#ffffff"/>
+  <!-- Clipboard Top Clip -->
+  <path d="M210 90C210 81.1634 217.163 74 226 74H286C294.837 74 302 81.1634 302 90V118H210V90Z" fill="#f37021"/>
+  <!-- Checkmark -->
+  <path d="M210 240L242 272L304 206" stroke="#005696" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Survey lines -->
+  <line x1="206" y1="320" x2="306" y2="320" stroke="#94a3b8" stroke-width="14" stroke-linecap="round"/>
+  <line x1="206" y1="356" x2="276" y2="356" stroke="#94a3b8" stroke-width="14" stroke-linecap="round"/>
+</svg>

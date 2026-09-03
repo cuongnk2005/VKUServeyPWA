@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="40" fill="#005696"/>
+  <rect x="24" y="24" width="144" height="144" rx="28" fill="#ffffff" fill-opacity="0.1"/>
+  <!-- Clipboard Body -->
+  <path d="M60 52C60 45.3726 65.3726 40 72 40H120C126.627 40 132 45.3726 132 52V144C132 150.627 126.627 156 120 156H72C65.3726 156 60 150.627 60 144V52Z" fill="#ffffff"/>
+  <!-- Clipboard Top Clip -->
+  <path d="M80 34C80 30.6863 82.6863 28 86 28H106C109.314 28 112 30.6863 112 34V44H80V34Z" fill="#f37021"/>
+  <!-- Checkmark -->
+  <path d="M78 92L90 104L114 78" stroke="#005696" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Survey lines -->
+  <line x1="78" y1="122" x2="114" y2="122" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
+  <line x1="78" y1="136" x2="102" y2="136" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
+</svg>
