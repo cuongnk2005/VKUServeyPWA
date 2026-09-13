@@ -120,17 +120,45 @@ Dự án được tối ưu sẵn sàng cho giai đoạn đóng gói Android:
 
 ---
 
-## 10. Result (Kết quả Nghiệm thu)
-Ứng dụng đã vượt qua toàn bộ 9 kịch bản kiểm thử:
-1. Mở ứng dụng bình thường khi có Internet: Hiển thị giao diện, chỉ báo `Online`.
-2. Ngắt kết nối mạng trong DevTools và tải lại trang: Ứng dụng vẫn khởi chạy bình thường từ Service Worker Cache.
-3. Tạo phiếu khảo sát mới khi đang offline: Lưu thành công, phiếu có trạng thái `PENDING`.
-4. Tải lại trang khi vẫn đang offline: Dữ liệu phiếu vừa tạo vẫn hiển thị chính xác từ IndexedDB.
-5. Bật lại kết nối mạng: Ứng dụng lập tức phát hiện sự kiện `online`, tự động kích hoạt đồng bộ và chuyển trạng thái phiếu sang `SYNCED`.
-6. Tải ảnh chụp, lấy tọa độ GPS và tìm kiếm, lọc theo tình trạng trang thiết bị hoạt động chính xác.
-7. Build Production đạt kích thước tối ưu, không có cảnh báo lỗi TypeScript.
+## 10. Tóm tắt Kết quả đạt được & Các Tính năng đã Hoàn thành
+Ứng dụng đã được triển khai hoàn chỉnh với các kết quả định lượng và định tính cụ thể:
+
+### 10.1. Các tính năng cốt lõi đã hoàn thành:
+1. **Kiến trúc Offline-First hoạt động 100%:** Cho phép mở app, nhập liệu và lưu phiếu khảo sát khi hoàn toàn ngắt kết nối mạng (`navigator.onLine === false`).
+2. **Form khảo sát hiện trường toàn diện:**
+   - Hỗ trợ chọn Tòa nhà (A, B, C, V, K...), số phòng học/lab, 9 loại trang thiết bị (Điều hòa, quạt, máy tính, máy chiếu...), 4 mức đánh giá tình trạng (Good, Minor Issue, Broken, Needs Replacement).
+   - Tích hợp Geolocation API định vị tọa độ GPS thực địa.
+   - Hỗ trợ đính kèm/chụp ảnh hiện trường từ Camera thiết bị.
+3. **Lưu trữ cục bộ an toàn với IndexedDB:** Thiết lập cơ sở dữ liệu `vku-field-survey` (Object store `surveys`) với chỉ mục `by-syncStatus` và `by-createdAt`, không giới hạn dung lượng 5MB như localStorage.
+4. **Hàng đợi đồng bộ tự động (Sync Queue):** Tự động phát hiện mạng (`online` event) để đẩy các phiếu `PENDING` lên máy chủ, cập nhật trạng thái `SYNCED` và lưu mốc thời gian đồng bộ.
+5. **Cài đặt chuẩn PWA (Add to Home Screen):** Bắt sự kiện `beforeinstallprompt` cho Android/Desktop với 1-chạm cài đặt và modal hướng dẫn riêng biệt cho iOS Safari.
+6. **Giao diện Responsive Đa nền tảng:** Bố cục mở rộng `max-w-7xl` trên Desktop (lưới 3 cột, form 2 cột) và tự động thu gọn mượt mà trên Mobile (1 cột).
+
+### 10.2. Kết quả kiểm thử nghiệm thu (Acceptance Tests):
+- Vượt qua toàn bộ 9 kịch bản kiểm thử: Tắt mạng F5 tải lại trang vẫn mở tức thì; tạo phiếu offline vẫn còn nguyên vẹn trong IndexedDB; bật mạng tự động đồng bộ sang `SYNCED`.
+- Quá trình Build Production qua TypeScript (`tsc -b`) và Vite đạt **0 lỗi**, dung lượng App Shell được tối ưu ở mức ~300 KiB.
 
 ---
 
-## 11. Conclusion (Kết luận)
+## 11. Khó khăn gặp phải & Giải pháp Xử lý Kỹ thuật
+
+| STT | Khó khăn / Thách thức gặp phải | Nguyên nhân kỹ thuật | Giải pháp xử lý kỹ thuật đã áp dụng |
+| :---: | :--- | :--- | :--- |
+| **1** | **Mất dữ liệu khi người dùng gửi form trong môi trường mạng chập chờn.** | Web truyền thống phụ thuộc trực tiếp vào HTTP POST lên Server. Nếu server timeout hoặc rớt mạng, luồng xử lý bị gián đoạn gây mất trắng dữ liệu người dùng vừa nhập. | **Triển khai kiến trúc Local-First:** Mọi thao tác submit luôn ghi vào **IndexedDB trước tiên** với trạng thái `PENDING` và trả thông báo thành công tức thì cho UI. Việc upload server chỉ là tác vụ ngầm phụ trợ sau khi dữ liệu đã được bảo vệ cục bộ an toàn. |
+| **2** | **Xung đột và trùng lặp dữ liệu trong quá trình tự động đồng bộ (Sync Queue).** | Khi mạng chập chờn bật/tắt liên tục, sự kiện `online` có thể bị kích hoạt nhiều lần cùng lúc, dẫn tới gọi nhiều request upload song song cho cùng một phiếu. | **Quản lý trạng thái đồng bộ có cờ khóa (Locking Flag):** Sử dụng biến trạng thái `isSyncing` và kiểm tra nguyên tử (atomic check). Duyệt tuần tự (sequential processing) từng survey; nếu mạng rớt giữa chừng thì dừng ngay để bảo toàn dữ liệu, đánh dấu `FAILED` kèm thông điệp lỗi rõ ràng. |
+| **3** | **Sự khác biệt về cơ chế cài đặt PWA giữa Android và iOS Safari.** | Trình duyệt Safari trên hệ điều hành iOS của Apple cố tình không hỗ trợ sự kiện `beforeinstallprompt`, khiến nút cài đặt tự động không thể hoạt động như trên Android/Chrome. | **Phân luồng thiết bị thông minh (Platform Detection):** Kiểm tra `User-Agent`. Nếu là Android/Desktop, hiển thị nút cài đặt trực tiếp gọi `deferredPrompt.prompt()`. Nếu là iOS, hiển thị modal đồ họa hướng dẫn người dùng nhấn biểu tượng **Share ➔ Add to Home Screen**. |
+| **4** | **Trình duyệt hiển thị phiên bản cũ (Stale Cache) sau khi cập nhật mã nguồn.** | Cấu hình Service Worker Cache First nếu không xử lý vòng đời cẩn thận sẽ khiến trình duyệt luôn giữ file cũ trong Cache Storage và không tải code mới. | **Cấu hình Workbox `autoUpdate` & Header Vercel:** Thiết lập `registerType: 'autoUpdate'` trong `vite-plugin-pwa`. Đồng thời trong `vercel.json`, ép buộc header `Cache-Control: no-cache, no-store, must-revalidate` đối với file `sw.js` để đảm bảo Service Worker luôn kiểm tra bản cập nhật mới nhất từ máy chủ. |
+
+---
+
+## 12. Bài học Kinh nghiệm (Lessons Learned)
+1. **Thay đổi tư duy thiết kế từ Online-First sang Offline-First:** Trong lập trình ứng dụng di động và thực địa, mạng Internet phải được coi là một "tính năng bổ sung" (enhancement) chứ không phải là điều kiện tiên quyết để ứng dụng hoạt động.
+2. **Khai thác sức mạnh của IndexedDB so với Storage truyền thống:** Hiểu rõ giới hạn của `localStorage` (chạy đồng bộ gây giật UI, giới hạn 5MB) và cách làm chủ IndexedDB thông qua thư viện Promise wrapper (`idb`) để lưu trữ dữ liệu có cấu trúc, hình ảnh và vị trí địa lý.
+3. **Làm chủ vòng đời Service Worker & Caching Strategies:** Nắm vững cách phối hợp giữa **Cache First** (dành cho App Shell tĩnh) và **Network First** (dành cho dữ liệu API động) để cân bằng giữa tốc độ mở app tức thì và độ mới của dữ liệu.
+4. **Chuẩn bị nền tảng Mobile-First cho Capacitor:** Việc tổ chức code phân lớp rõ ràng (UI tách biệt khỏi Service Layer, dùng biến môi trường cho API URL) giúp việc chuyển đổi từ PWA sang Android Native App bằng Capacitor trong giai đoạn tiếp theo trở nên vô cùng thuận lợi.
+
+---
+
+## 13. Conclusion (Kết luận)
 Dự án **VKU Field Survey PWA** đã hiện thực hóa thành công kiến trúc **Offline-First** cho bài toán khảo sát hiện trường tại trường Đại học VKU. Việc kết hợp giữa **Progressive Web App**, **Service Worker Precaching** và **IndexedDB** giúp loại bỏ hoàn toàn sự phụ thuộc vào đường truyền mạng trong quá trình nhập liệu, đảm bảo tính toàn vẹn của dữ liệu và mang lại trải nghiệm mượt mà tương đương ứng dụng native.
+

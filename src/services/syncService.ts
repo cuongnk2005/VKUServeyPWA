@@ -1,6 +1,8 @@
 import { getPendingSurveys, markSurveyAsSynced, markSurveyAsFailed } from '../db';
 import { apiService } from './apiService';
 import type { Survey } from '../types/survey';
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 
 export interface SyncResult {
   totalPending: number;
@@ -87,6 +89,27 @@ export async function syncPendingSurveys(): Promise<SyncResult> {
     }
   } finally {
     notifySyncState(false);
+  }
+
+  if (result.syncedCount > 0) {
+    try {
+      const permStatus = await LocalNotifications.checkPermissions();
+      if (permStatus.display !== 'granted') {
+        await LocalNotifications.requestPermissions();
+      }
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: "Đồng bộ hoàn tất",
+            body: `Đã tải lên thành công ${result.syncedCount} phiếu khảo sát.`,
+            id: new Date().getTime(),
+            schedule: { at: new Date(Date.now() + 1000 * 1) }
+          }
+        ]
+      });
+    } catch (e) {
+      console.warn("Could not schedule local notification", e);
+    }
   }
 
   return result;

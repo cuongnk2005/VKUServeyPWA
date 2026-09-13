@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { FacilityType, Condition } from '../types/survey';
 import type { CreateSurveyInput } from '../services/surveyService';
 import { MapPin, Camera, X, Check, Loader2, Sparkles, Building2 } from 'lucide-react';
+import { Geolocation as CapacitorGeolocation } from '@capacitor/geolocation';
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 interface SurveyFormProps {
   onSubmit: (data: CreateSurveyInput) => Promise<void>;
@@ -76,39 +78,51 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({ onSubmit, onCancel }) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Xử lý lấy vị trí GPS
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Trình duyệt không hỗ trợ Geolocation');
-      return;
-    }
+  // Xử lý lấy vị trí GPS bằng Capacitor
+  const handleGetLocation = async () => {
     setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(Number(pos.coords.latitude.toFixed(6)));
-        setLongitude(Number(pos.coords.longitude.toFixed(6)));
-        setIsGettingLocation(false);
-      },
-      (err) => {
-        console.warn('Geolocation error:', err);
-        setIsGettingLocation(false);
-        // Fallback default coordinates VKU Campus
-        setLatitude(15.97529);
-        setLongitude(108.25324);
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
+    try {
+      const permission = await CapacitorGeolocation.checkPermissions();
+      if (permission.location !== 'granted') {
+        const req = await CapacitorGeolocation.requestPermissions();
+        if (req.location !== 'granted') {
+          alert('Vui lòng cấp quyền truy cập vị trí để tiếp tục.');
+          setIsGettingLocation(false);
+          return;
+        }
+      }
+
+      const pos = await CapacitorGeolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000
+      });
+      setLatitude(Number(pos.coords.latitude.toFixed(6)));
+      setLongitude(Number(pos.coords.longitude.toFixed(6)));
+    } catch (err) {
+      console.warn('Geolocation error:', err);
+      // Fallback default coordinates VKU Campus
+      setLatitude(15.97529);
+      setLongitude(108.25324);
+    } finally {
+      setIsGettingLocation(false);
+    }
   };
 
-  // Xử lý ảnh chụp / upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  // Xử lý ảnh chụp / upload bằng Capacitor Camera
+  const handleTakePhoto = async () => {
+    try {
+      const photo = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+      
+      if (photo.dataUrl) {
+        setImageUrl(photo.dataUrl);
+      }
+    } catch (error) {
+      console.warn('User cancelled or error taking photo', error);
     }
   };
 
@@ -331,17 +345,14 @@ export const SurveyForm: React.FC<SurveyFormProps> = ({ onSubmit, onCancel }) =>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Ảnh chụp hiện trường
                 </label>
-                <label className="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                <button
+                  type="button"
+                  onClick={handleTakePhoto}
+                  className="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                >
                   <Camera className="w-4 h-4 text-blue-600" />
-                  <span>{imageUrl ? 'Đã đính kèm ảnh' : 'Chụp / Tải ảnh'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
+                  <span>{imageUrl ? 'Chụp lại ảnh' : 'Chụp / Tải ảnh'}</span>
+                </button>
               </div>
             </div>
 
